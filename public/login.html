@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Instagram Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login-style.css">
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo">📸</div>
+        <h1>Instagram Manager</h1>
+        <p class="login-subtitle">Multi-Account Dashboard</p>
+      </div>
+      <form id="login-form" autocomplete="off">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" placeholder="Enter username" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <div class="password-wrap">
+            <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="off" required>
+            <button type="button" class="toggle-pw" id="toggle-pw">👁️</button>
+          </div>
+        </div>
+        <div id="error-msg" class="error-msg hidden"></div>
+        <button type="submit" class="btn-login" id="btn-login">
+          <span class="btn-text">Sign In</span>
+          <span class="btn-spinner hidden" id="spinner">⟳</span>
+        </button>
+      </form>
+      <div class="login-footer">
+        <span>🔒 Secure login — rate limited</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const form = document.getElementById('login-form');
+    const errorMsg = document.getElementById('error-msg');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.querySelector('.btn-text');
+    const togglePw = document.getElementById('toggle-pw');
+    const pwInput = document.getElementById('password');
+
+    togglePw.addEventListener('click', () => {
+      const type = pwInput.type === 'password' ? 'text' : 'password';
+      pwInput.type = type;
+      togglePw.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.classList.add('hidden');
+      spinner.classList.remove('hidden');
+      btnText.textContent = 'Signing in...';
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          window.location.href = '/';
+        } else {
+          errorMsg.textContent = data.error || 'Login failed';
+          errorMsg.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Connection error';
+        errorMsg.classList.remove('hidden');
+      }
+
+      spinner.classList.add('hidden');
+      btnText.textContent = 'Sign In';
+    });
+
+    // If already logged in, redirect
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      fetch('/api/auth/verify', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      }).then(r => r.json()).then(d => {
+        if (d.valid) window.location.href = '/';
+      });
+    }
+  </script>
+</body>
+</html>

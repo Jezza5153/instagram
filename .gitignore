@@ -1,0 +1,19 @@
+# ═══ SENSITIVE — Never commit ═══
+.env
+.env.*
+
+# ═══ Data files (contain user data, tokens, logs) ═══
+data/
+*.log
+
+# ═══ Node ═══
+node_modules/
+package-lock.json
+
+# ═══ OS ═══
+.DS_Store
+Thumbs.db
+
+# ═══ IDE ═══
+.vscode/
+.idea/

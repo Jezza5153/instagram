@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instagram Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">📸</div>
+      <h1>InstaManager</h1>
+    </div>
+
+    <!-- Account Switcher -->
+    <div class="account-switcher" id="account-switcher">
+      <button class="account-btn" id="account-btn">
+        <div class="account-avatar" id="account-avatar"></div>
+        <div class="account-info">
+          <span class="account-name" id="account-name">Select Account</span>
+          <span class="account-role" id="account-role"></span>
+        </div>
+        <span class="account-arrow">▾</span>
+      </button>
+      <div class="account-dropdown hidden" id="account-dropdown"></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-tab="post">
+        <span class="nav-icon">✏️</span>
+        <span>New Post</span>
+      </button>
+      <button class="nav-btn" data-tab="analytics">
+        <span class="nav-icon">📊</span>
+        <span>Analytics</span>
+      </button>
+      <button class="nav-btn" data-tab="comments">
+        <span class="nav-icon">💬</span>
+        <span>Comments</span>
+      </button>
+      <button class="nav-btn" data-tab="messages">
+        <span class="nav-icon">📩</span>
+        <span>Messages</span>
+      </button>
+      <button class="nav-btn" data-tab="funnels">
+        <span class="nav-icon">🔄</span>
+        <span>Funnels</span>
+      </button>
+      <button class="nav-btn admin-only" data-tab="settings" id="nav-settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" id="btn-logout">
+        <span>🚪</span> Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ===== NEW POST TAB ===== -->
+    <section class="tab-content active" id="tab-post">
+      <div class="tab-header">
+        <h2>Create New Post</h2>
+        <p class="tab-subtitle">Upload a photo to publish on Instagram</p>
+      </div>
+      <div class="post-form-grid">
+        <div class="upload-area" id="upload-area">
+          <div class="upload-placeholder" id="upload-placeholder">
+            <span class="upload-icon">📷</span>
+            <p>Drag & drop your image here</p>
+            <span class="upload-sub">or click to browse</span>
+          </div>
+          <img id="upload-preview" class="upload-preview hidden" alt="Preview">
+          <input type="file" id="file-input" accept="image/*" hidden>
+        </div>
+        <div class="post-details">
+          <div class="form-group">
+            <label>Image URL <span class="label-hint">(if not uploading)</span></label>
+            <input type="text" id="image-url" placeholder="https://example.com/photo.jpg" class="input">
+          </div>
+          <div class="form-group">
+            <label>Caption</label>
+            <textarea id="caption" class="input textarea" rows="5" placeholder="Write your caption here... #hashtags"></textarea>
+            <span class="char-count" id="char-count">0 / 2,200</span>
+          </div>
+          <button class="btn-primary" id="btn-publish">
+            <span class="btn-icon">🚀</span>
+            Publish Now
+          </button>
+          <div id="post-result" class="result-message hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ANALYTICS TAB ===== -->
+    <section class="tab-content" id="tab-analytics">
+      <div class="tab-header">
+        <div class="tab-header-row">
+          <div>
+            <h2>Analytics</h2>
+            <p class="tab-subtitle">Track your Instagram performance</p>
+          </div>
+          <div class="export-btns">
+            <button class="btn-secondary" id="btn-export-csv">📥 Export CSV</button>
+            <button class="btn-secondary" id="btn-export-json">📥 Export JSON</button>
+          </div>
+        </div>
+      </div>
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card">
+          <span class="stat-label">Followers</span>
+          <span class="stat-value" id="stat-followers">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Following</span>
+          <span class="stat-value" id="stat-following">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Posts</span>
+          <span class="stat-value" id="stat-posts">—</span>
+        </div>
+        <div class="stat-card highlight">
+          <span class="stat-label">Engagement Rate</span>
+          <span class="stat-value" id="stat-engagement">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Likes</span>
+          <span class="stat-value" id="stat-total-likes">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Comments</span>
+          <span class="stat-value" id="stat-total-comments">—</span>
+        </div>
+      </div>
+      <div class="tab-subheader">
+        <h3>Post Performance</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table" id="posts-table">
+          <thead>
+            <tr>
+              <th>Post</th>
+              <th class="sortable" data-sort="likes">❤️ Likes</th>
+              <th class="sortable" data-sort="comments">💬 Comments</th>
+              <th class="sortable" data-sort="engagement">📈 Engagement</th>
+              <th class="sortable" data-sort="date">📅 Date</th>
+            </tr>
+          </thead>
+          <tbody id="posts-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== COMMENTS TAB ===== -->
+    <section class="tab-content" id="tab-comments">
+      <div class="tab-header">
+        <h2>Comments</h2>
+        <p class="tab-subtitle">View and reply to comments on your posts</p>
+      </div>
+      <div class="comments-layout">
+        <div class="posts-sidebar" id="posts-sidebar">
+          <h4>Select a Post</h4>
+          <div id="comments-posts-list" class="posts-list"></div>
+        </div>
+        <div class="comments-main">
+          <div id="comments-list" class="comments-list">
+            <div class="empty-state">
+              <span class="empty-icon">💬</span>
+              <p>Select a post to view its comments</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MESSAGES TAB ===== -->
+    <section class="tab-content" id="tab-messages">
+      <div class="tab-header">
+        <div class="tab-header-row">
+          <div>
+            <h2>Messages</h2>
+            <p class="tab-subtitle">Read and reply to Instagram DMs & Facebook Messages</p>
+          </div>
+          <div class="platform-toggle" id="platform-toggle">
+            <button class="platform-btn active" data-platform="instagram">📸 Instagram</button>
+            <button class="platform-btn" data-platform="facebook">📘 Facebook</button>
+          </div>
+        </div>
+      </div>
+      <div class="messages-layout">
+        <div class="conversations-sidebar" id="conversations-sidebar">
+          <h4>Conversations</h4>
+          <div id="conversations-list" class="conversations-list">
+            <div class="empty-state">
+              <span class="empty-icon">📩</span>
+              <p>Loading conversations...</p>
+            </div>
+          </div>
+        </div>
+        <div class="messages-main">
+          <div id="messages-thread" class="messages-thread">
+            <div class="empty-state">
+              <span class="empty-icon">📩</span>
+              <p>Select a conversation to read messages</p>
+            </div>
+          </div>
+          <div class="message-compose hidden" id="message-compose">
+            <input type="text" id="message-input" class="input" placeholder="Type your reply...">
+            <button class="btn-primary btn-sm" id="btn-send-msg">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== FUNNELS TAB ===== -->
+    <section class="tab-content" id="tab-funnels">
+      <div class="tab-header">
+        <div class="tab-header-row">
+          <div>
+            <h2>Funnels</h2>
+            <p class="tab-subtitle">Automated traffic funnels to offertesvoorjou.nl</p>
+          </div>
+          <a href="/link" target="_blank" class="btn-secondary">🔗 Open Bio Link Page</a>
+        </div>
+      </div>
+
+      <!-- Funnel Stats Row -->
+      <div class="stats-row" id="funnel-stats-row">
+        <div class="stat-card">
+          <span class="stat-label">DMs Sent Today</span>
+          <span class="stat-value" id="funnel-dms-today">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Comments Today</span>
+          <span class="stat-value" id="funnel-comments-today">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">DMs This Week</span>
+          <span class="stat-value" id="funnel-dms-week">—</span>
+        </div>
+        <div class="stat-card highlight">
+          <span class="stat-label">Bio Link Clicks</span>
+          <span class="stat-value" id="funnel-link-clicks">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total DMs Sent</span>
+          <span class="stat-value" id="funnel-total-dms">—</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Prospecting Comments</span>
+          <span class="stat-value" id="funnel-total-comments">—</span>
+        </div>
+      </div>
+
+      <!-- Funnel Cards -->
+      <div class="tab-subheader">
+        <h3>Active Funnels</h3>
+      </div>
+      <div class="funnel-cards" id="funnel-cards">
+        <div class="funnel-card" data-funnel="comment_to_dm">
+          <div class="funnel-header">
+            <span class="funnel-icon">🔄</span>
+            <div class="funnel-info">
+              <h4>Comment-to-DM</h4>
+              <p>Auto-DMs users who comment trigger keywords</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" class="funnel-toggle" data-funnel="comment_to_dm" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="funnel-meta">⏰ Every 5 min · Keywords: info, prijs, hoe, meer...</div>
+        </div>
+
+        <div class="funnel-card" data-funnel="new_follower">
+          <div class="funnel-header">
+            <span class="funnel-icon">🆕</span>
+            <div class="funnel-info">
+              <h4>New Follower Welcome</h4>
+              <p>Welcome DM to every new follower</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" class="funnel-toggle" data-funnel="new_follower" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="funnel-meta">⏰ Every 15 min · Tracks follower growth</div>
+        </div>
+
+        <div class="funnel-card" data-funnel="engagement_retarget">
+          <div class="funnel-header">
+            <span class="funnel-icon">🎯</span>
+            <div class="funnel-info">
+              <h4>Engagement Retarget</h4>
+              <p>DM users who engaged 3+ times</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" class="funnel-toggle" data-funnel="engagement_retarget" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="funnel-meta">⏰ Daily at 10:00 · Max 10 DMs/day</div>
+        </div>
+
+        <div class="funnel-card" data-funnel="hashtag_prospecting">
+          <div class="funnel-header">
+            <span class="funnel-icon">🔍</span>
+            <div class="funnel-info">
+              <h4>Hashtag Prospecting</h4>
+              <p>Find & comment on potential customer posts</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" class="funnel-toggle" data-funnel="hashtag_prospecting" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="funnel-meta">⏰ Every 2 hours · Max 15 comments/day · Rotates hashtags</div>
+        </div>
+      </div>
+
+      <!-- Link Click Stats -->
+      <div class="tab-subheader">
+        <h3>Bio Link Click Breakdown</h3>
+      </div>
+      <div class="link-click-stats" id="link-click-stats">
+        <div class="empty-state">
+          <span class="empty-icon">🔗</span>
+          <p>Click data will appear here once visitors use your bio link</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SETTINGS TAB (Admin only) ===== -->
+    <section class="tab-content" id="tab-settings">
+      <div class="tab-header">
+        <h2>Settings</h2>
+        <p class="tab-subtitle">Manage accounts and configuration</p>
+      </div>
+      <div class="settings-section">
+        <h3>Connected Accounts</h3>
+        <div id="accounts-list" class="accounts-list"></div>
+        <div class="add-account-form">
+          <h4>Add New Account</h4>
+          <p class="form-hint">The account owner needs to generate an access token from the Meta Developer Tools with Instagram permissions.</p>
+          <div class="form-group">
+            <label>Account Name</label>
+            <input type="text" id="new-account-name" class="input" placeholder="e.g. Chef & Serve">
+          </div>
+          <div class="form-group">
+            <label>Access Token</label>
+            <input type="text" id="new-account-token" class="input" placeholder="Paste the access token here">
+          </div>
+          <button class="btn-primary" id="btn-add-account">
+            <span class="btn-icon">➕</span> Connect Account
+          </button>
+          <div id="add-account-result" class="result-message hidden"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

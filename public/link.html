@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OffertesVoorJou — Vergelijk Vakmensen</title>
+  <meta name="description" content="Vergelijk gratis schilders, aannemers, cateraars en makelaars in jouw regio. OffertesVoorJou — slim vergelijken, slim besparen.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/link-style.css">
+</head>
+<body>
+  <div class="link-page">
+    <!-- Animated background -->
+    <div class="bg-orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
+    <div class="link-container">
+      <!-- Logo / Brand -->
+      <div class="brand-header">
+        <div class="logo-circle">
+          <span class="logo-icon">🏠</span>
+        </div>
+        <h1 class="brand-name">OffertesVoorJou</h1>
+        <p class="brand-tagline">Vergelijk gratis vakmensen in jouw regio</p>
+      </div>
+
+      <!-- Service Buttons -->
+      <div class="link-buttons">
+        <a href="https://offertesvoorjou.nl/schilders" class="link-btn" data-service="schilder" onclick="trackClick('schilder')">
+          <span class="btn-icon">🎨</span>
+          <div class="btn-text">
+            <span class="btn-title">Schilder zoeken</span>
+            <span class="btn-sub">Vergelijk schilders bij jou in de buurt</span>
+          </div>
+          <span class="btn-arrow">→</span>
+        </a>
+
+        <a href="https://offertesvoorjou.nl/aannemers" class="link-btn" data-service="aannemer" onclick="trackClick('aannemer')">
+          <span class="btn-icon">🔨</span>
+          <div class="btn-text">
+            <span class="btn-title">Aannemer zoeken</span>
+            <span class="btn-sub">Van renovatie tot nieuwbouw</span>
+          </div>
+          <span class="btn-arrow">→</span>
+        </a>
+
+        <a href="https://offertesvoorjou.nl/cateraars" class="link-btn" data-service="cateraar" onclick="trackClick('cateraar')">
+          <span class="btn-icon">🍽️</span>
+          <div class="btn-text">
+            <span class="btn-title">Cateraar zoeken</span>
+            <span class="btn-sub">BBQ, bruiloft, feest & meer</span>
+          </div>
+          <span class="btn-arrow">→</span>
+        </a>
+
+        <a href="https://offertesvoorjou.nl/makelaars" class="link-btn" data-service="makelaar" onclick="trackClick('makelaar')">
+          <span class="btn-icon">🏡</span>
+          <div class="btn-text">
+            <span class="btn-title">Makelaar zoeken</span>
+            <span class="btn-sub">Kopen of verkopen — vergelijk courtages</span>
+          </div>
+          <span class="btn-arrow">→</span>
+        </a>
+
+        <a href="https://offertesvoorjou.nl" class="link-btn link-btn-primary" data-service="general" onclick="trackClick('general')">
+          <span class="btn-icon">⚡</span>
+          <div class="btn-text">
+            <span class="btn-title">Gratis offertes aanvragen</span>
+            <span class="btn-sub">Alle diensten — in 2 minuten geregeld</span>
+          </div>
+          <span class="btn-arrow">→</span>
+        </a>
+      </div>
+
+      <!-- Trust Badges -->
+      <div class="trust-badges">
+        <div class="badge">✅ 100% Gratis</div>
+        <div class="badge">🔒 Geen verplichtingen</div>
+        <div class="badge">⭐ Gecertificeerd</div>
+      </div>
+
+      <!-- Footer -->
+      <div class="link-footer">
+        <p>© 2026 OffertesVoorJou.nl</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function trackClick(service) {
+      // Fire & forget — don't block navigation
+      try {
+        navigator.sendBeacon('/api/link/click', JSON.stringify({
+          service: service,
+          referrer: document.referrer || 'direct',
+          timestamp: new Date().toISOString()
+        }));
+      } catch (e) {
+        // Fallback
+        fetch('/api/link/click', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service: service,
+            referrer: document.referrer || 'direct',
+            timestamp: new Date().toISOString()
+          }),
+          keepalive: true
+        }).catch(() => {});
+      }
+    }
+
+    // Animate buttons on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const buttons = document.querySelectorAll('.link-btn');
+      buttons.forEach((btn, i) => {
+        btn.style.animationDelay = `${0.1 + i * 0.08}s`;
+      });
+    });
+  </script>
+</body>
+</html>
