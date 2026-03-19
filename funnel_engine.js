@@ -702,32 +702,283 @@ function updateFunnelConfig(updates) {
   return data.config;
 }
 
-function getLeadQueue() {
+// Lead queue with extended statuses: new → scored → pending → approved → contacted → converted → ignored
+function getLeadQueue(statusFilter) {
   const data = getFunnelData();
-  return (data.lead_queue || []).filter(l => l.status === 'pending');
+  const queue = data.lead_queue || [];
+  if (statusFilter) return queue.filter(l => l.status === statusFilter);
+  return queue.filter(l => l.status !== 'ignored' && l.status !== 'converted');
 }
 
-function updateLeadStatus(postId, status) {
+function updateLeadStatus(postId, status, notes) {
   const data = getFunnelData();
   const lead = (data.lead_queue || []).find(l => l.postId === postId);
-  if (lead) { lead.status = status; lead.reviewedAt = new Date().toISOString(); }
+  if (lead) {
+    lead.status = status;
+    lead.reviewedAt = new Date().toISOString();
+    if (notes) lead.notes = notes;
+  }
   saveFunnelData(data);
   return lead;
+}
+
+// ---------------------------------------------------------------------------
+// v3: WARMTH SCORING PER USER
+// Tracks signals across sessions → cold / warm / hot / dead
+// ---------------------------------------------------------------------------
+function getUserProfiles() {
+  const fp = path.join(DATA_DIR, 'user_profiles.json');
+  if (fs.existsSync(fp)) return JSON.parse(fs.readFileSync(fp, 'utf-8'));
+  return {};
+}
+
+function saveUserProfiles(profiles) {
+  fs.writeFileSync(path.join(DATA_DIR, 'user_profiles.json'), JSON.stringify(profiles, null, 2));
+}
+
+function updateUserWarmth(username, signal) {
+  const profiles = getUserProfiles();
+  if (!profiles[username]) {
+    profiles[username] = {
+      username,
+      signals: [],
+      warmth: 'cold',
+      score: 0,
+      firstSeen: new Date().toISOString(),
+      lastSeen: new Date().toISOString(),
+      dmsSent: 0,
+      dmsIgnored: 0
+    };
+  }
+
+  const user = profiles[username];
+  user.lastSeen = new Date().toISOString();
+  user.signals.push({ type: signal, date: new Date().toISOString() });
+  user.signals = user.signals.slice(-50); // Keep last 50 signals
+
+  // Calculate warmth score from signals
+  const signalWeights = {
+    'story_reply': 8,
+    'dm_initiated': 8,
+    'link_click': 6,
+    'comment_intent': 5,
+    'comment_question': 4,
+    'comment_niche': 4,
+    'multiple_comments': 3,
+    'follow': 3,
+    'like': 1,
+    'dm_sent': 0,       // We DMd them — doesn't count toward warmth
+    'dm_ignored': -3,
+    'blocked': -10
+  };
+
+  user.score = user.signals.reduce((sum, s) => sum + (signalWeights[s.type] || 0), 0);
+
+  // Classify warmth
+  if (user.score >= 15) user.warmth = 'hot';
+  else if (user.score >= 6) user.warmth = 'warm';
+  else if (user.score <= -5) user.warmth = 'dead';
+  else user.warmth = 'cold';
+
+  saveUserProfiles(profiles);
+  return user;
+}
+
+function getUserWarmth(username) {
+  const profiles = getUserProfiles();
+  return profiles[username] || { warmth: 'cold', score: 0 };
+}
+
+// ---------------------------------------------------------------------------
+// v3: LOCALITY CONFIDENCE ENGINE
+// Scores location certainty: exact city > omgeving > regio > no location
+// ---------------------------------------------------------------------------
+function scoreLocality(text, config) {
+  if (!text) return { score: 0, city: null, confidence: 'none' };
+
+  const lowerText = text.toLowerCase();
+  const cities = config?.targetCities || [];
+
+  // Exact city match = highest confidence
+  for (const city of cities) {
+    // Exact: "amersfoort"
+    if (lowerText.includes(city)) {
+      return { score: 5, city, confidence: 'exact' };
+    }
+  }
+
+  // "omgeving" + city
+  for (const city of cities) {
+    if (lowerText.includes(`omgeving ${city}`) || lowerText.includes(`regio ${city}`) || lowerText.includes(`in de buurt van ${city}`)) {
+      return { score: 3, city, confidence: 'nearby' };
+    }
+  }
+
+  // Generic location hints
+  if (lowerText.includes('omgeving') || lowerText.includes('regio') || lowerText.includes('dichtbij') || lowerText.includes('lokaal')) {
+    return { score: 1, city: null, confidence: 'vague' };
+  }
+
+  return { score: 0, city: null, confidence: 'none' };
+}
+
+// ---------------------------------------------------------------------------
+// v3: NEGATIVE SENTIMENT / RISK FILTER
+// Detects angry comments, sarcasm, spam bait, competitor bait, legal/privacy
+// ---------------------------------------------------------------------------
+function detectNegativeSentiment(text) {
+  if (!text) return { isRisky: false, risk: 'none', signals: [] };
+
+  const lowerText = text.toLowerCase();
+  const signals = [];
+
+  // Angry / complaint
+  const angerWords = ['klaag', 'klacht', 'boos', 'woedend', 'schandalig', 'oplichter', 'oplichting',
+    'bedrog', 'fraude', 'belachelijk', 'schandalig', 'onbetrouwbaar', 'niet bereikbaar',
+    'geen reactie', 'nooit meer', 'weggegooid geld', 'afzetterij'];
+  const angerMatches = angerWords.filter(w => lowerText.includes(w));
+  if (angerMatches.length > 0) signals.push({ type: 'anger', words: angerMatches });
+
+  // Anti-bot / spam complaints
+  const botWords = ['spam', 'bot', 'nep', 'fake', 'reclame', 'niet gevraagd', 'stop hiermee',
+    'niet interess', 'laat me met rust', 'ongewenst', 'verwijder'];
+  const botMatches = botWords.filter(w => lowerText.includes(w));
+  if (botMatches.length > 0) signals.push({ type: 'anti_bot', words: botMatches });
+
+  // Legal / privacy
+  const legalWords = ['advocaat', 'rechter', 'rechtszaak', 'privacy', 'avg', 'gdpr', 'persoonsgegevens',
+    'melden', 'aangifte', 'consumentenbond', 'acm'];
+  const legalMatches = legalWords.filter(w => lowerText.includes(w));
+  if (legalMatches.length > 0) signals.push({ type: 'legal', words: legalMatches });
+
+  // Competitor bait
+  const compWords = ['beter dan', 'gebruik liever', 'waarom niet gewoon', 'alternatief'];
+  const compMatches = compWords.filter(w => lowerText.includes(w));
+  if (compMatches.length > 0) signals.push({ type: 'competitor', words: compMatches });
+
+  const isRisky = signals.length > 0;
+  const risk = signals.length === 0 ? 'none' :
+    signals.some(s => s.type === 'legal') ? 'high' :
+    signals.some(s => s.type === 'anti_bot') ? 'high' :
+    signals.some(s => s.type === 'anger') ? 'medium' : 'low';
+
+  return { isRisky, risk, signals };
+}
+
+// ---------------------------------------------------------------------------
+// v3: CLICK-TO-LEAD ATTRIBUTION
+// Generates source-tagged URLs for tracking which automation converts
+// ---------------------------------------------------------------------------
+function getAttributedUrl(source, niche, medium) {
+  const params = new URLSearchParams({
+    utm_source: 'instagram',
+    utm_medium: medium || 'comment',
+    utm_campaign: `ovj_${niche || 'general'}`,
+    utm_content: source || 'organic'
+  });
+  return `${SITE_URL}?${params.toString()}`;
+}
+
+// Attribution sources for different contexts
+const ATTRIBUTION_SOURCES = {
+  comment_schilder: 'ig_comment_schilder',
+  comment_aannemer: 'ig_comment_aannemer',
+  comment_catering: 'ig_comment_catering',
+  comment_makelaar: 'ig_comment_makelaar',
+  dm_tier_a: 'ig_dm_hot',
+  dm_tier_b: 'ig_dm_warm',
+  bio_link: 'ig_bio',
+  story_reply: 'ig_story',
+  mention: 'ig_mention'
+};
+
+// ---------------------------------------------------------------------------
+// v3: AUTO-REPLY TEMPLATES — 20+ human variants, advice-first
+// ---------------------------------------------------------------------------
+function getAutoReplyTemplates() {
+  return {
+    schilder: [
+      'Ligt eraan of het binnen of buiten is — de prijsverschillen zijn soms enorm. Vergelijk in elk geval meerdere opties!',
+      'Check altijd of houtrot herstel en grondwerk in de offerte zitten. Wordt vaak vergeten.',
+      'Buitenwerk of kozijnen? Vraag specifiek welke verf ze gebruiken, dat zegt veel over de kwaliteit.',
+      'Tip: goede schilders plannen vaak weken vooruit. Begin op tijd met offertes aanvragen.',
+      'Vergelijk minimaal 3 schilders — je zult zien dat de prijs en aanpak flink verschilt.',
+      'Let op of ze ook het voorwerk goed doen. Dat is waar je het verschil merkt na een paar jaar.'
+    ],
+    aannemer: [
+      'Check vooral planning, recensies en wat er wel/niet in de prijs zit. Daar gaat het vaak mis.',
+      'Let op of ze meerwerk duidelijk vastleggen vooraf — dat voorkomt verrassingen.',
+      'Vraag altijd referenties van vergelijkbare klussen. Elke aannemer heeft een eigen specialiteit.',
+      'Bij een verbouwing loont het echt om minimaal 3 aannemers te vergelijken.',
+      'Planning is key — goede aannemers zitten vaak maanden vol. Begin vroeg met offertes.',
+      'Let naast prijs ook op garantievoorwaarden en opleverdatum. Dat scheelt stress.'
+    ],
+    catering: [
+      'Vraag altijd door op aantallen, bezorging en wat precies inbegrepen is. Scheelt verrassingen.',
+      'Een proeverij doen is echt aan te raden — foto\'s zeggen lang niet alles over smaak.',
+      'Check of ze vaker dat type event doen. Bruiloft is heel anders dan bedrijfslunch.',
+      'Vergelijk op prijs, menu en wat ze aan personeel/materiaal meebrengen.',
+      'Bij grotere groepen is het slim om vroeg te boeken — populaire cateraars zitten snel vol.',
+      'Vraag naar allergieën-aanpak en of ze afwas/opruimen ook doen. Scheelt echt veel.'
+    ],
+    makelaar: [
+      'Courtage zegt niet alles — lokale kennis en presentatie maken vaak het echte verschil.',
+      'Let op hoe actief ze je woning gaan presenteren. Alleen op Funda zetten is niet meer genoeg.',
+      'Vergelijk niet alleen op courtage maar ook op verkoopstrategie en dienstverlening.',
+      'Vraag naar hun gemiddelde verkooptijd en verschil vraagprijs/verkoopprijs. Dat zegt veel.',
+      'Bij koop: een goede aankoopmakelaar verdient zichzelf terug in de onderhandeling.',
+      'Vraag een gratis waardebepaling aan bij meerdere makelaars — die lopen flink uiteen.'
+    ],
+    general: [
+      'Vergelijk altijd meerdere opties voor je kiest — de verschillen zijn soms verrassend groot.',
+      'Vraag altijd wat er precies in de offerte zit, en wat niet. Daar gaat het vaak mis.',
+      'Check recensies en vraag referenties. Dat zegt meer dan de prijs alleen.',
+      'Begin op tijd met offertes aanvragen — goede vakmensen zitten vaak weken vol.',
+      'Neem de tijd om meerdere aanbieders te vergelijken. Scheelt geld en teleurstelling.'
+    ],
+    positive: [
+      'Dankjewel! 😊',
+      'Bedankt! 🙏',
+      'Fijn om te horen! 👍',
+      'Thanks! ❤️'
+    ],
+    fallback: [
+      'Bedankt voor je reactie! 🙏',
+      'Goeie vraag! Check je DM of onze bio voor meer info 👍',
+      'Thanks voor je bericht! 😊'
+    ]
+  };
 }
 
 // ---------------------------------------------------------------------------
 // EXPORTS
 // ---------------------------------------------------------------------------
 module.exports = {
+  // Core funnels
   commentToDmFunnel,
   newFollowerWelcomeFunnel,
   engagementRetargetFunnel,
   hashtagProspectingFunnel,
+  // Analytics & config
   getFunnelAnalytics,
   updateFunnelConfig,
   getFunnelData,
   saveFunnelData,
+  // Lead queue
   getLeadQueue,
   updateLeadStatus,
-  scorePost
+  // v3: Scoring
+  scorePost,
+  scoreLocality,
+  detectNegativeSentiment,
+  // v3: Warmth
+  updateUserWarmth,
+  getUserWarmth,
+  getUserProfiles,
+  // v3: Attribution
+  getAttributedUrl,
+  ATTRIBUTION_SOURCES,
+  // v3: Templates
+  getAutoReplyTemplates
 };
+
