@@ -438,6 +438,21 @@ app.post('/api/funnels/config', apiAuth, (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// Lead queue — view pending leads for human review
+app.get('/api/leads', apiAuth, (req, res) => {
+  try {
+    res.json(funnelEngine.getLeadQueue());
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Lead queue — approve/reject a lead
+app.post('/api/leads/:postId', apiAuth, (req, res) => {
+  try {
+    const lead = funnelEngine.updateLeadStatus(req.params.postId, req.body.status || 'reviewed');
+    res.json({ success: true, lead });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Link click stats (auth required)
 app.get('/api/link/stats', apiAuth, (req, res) => {
   try {
