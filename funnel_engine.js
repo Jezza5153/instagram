@@ -114,10 +114,34 @@ function getDefaultConfig() {
         'commercieel vastgoed', 'huurwoning student', 'funda vacature'
       ],
 
-      // City targeting — posts mentioning these cities score higher
+      // City targeting — all cities where we have registered providers
       targetCities: [
+        // Core region
         'amersfoort', 'utrecht', 'leusden', 'soest', 'nijkerk', 'baarn',
-        'hoogland', 'vathorst', 'barneveld', 'hilversum', 'zeist', 'ede', 'arnhem'
+        'hoogland', 'vathorst', 'barneveld', 'hilversum', 'zeist', 'ede', 'arnhem',
+        'hoevelaken', 'scherpenzeel',
+        // Randstad
+        'amsterdam', 'rotterdam', 'den haag', 'delft', 'leiden', 'haarlem',
+        'rijswijk', 'voorburg', 'wassenaar', 'leidschendam', 'diemen',
+        'zaandam', 'castricum', 'overveen', 'berkel en rodenrijs', 'vlaardingen',
+        // Noord-Holland
+        'hoorn', 'enkhuizen', 'heerhugowaard', 'hollands kroon', 'almere',
+        // Utrecht province
+        'nieuwegein', 'houten', 'zeewolde', 'de meern', 'vleuten',
+        // Gelderland
+        'apeldoorn', 'harderwijk', 'ermelo', 'elspeet', 'elst',
+        // Overijssel
+        'hengelo', 'almelo', 'raalte', 'ommen', 'nijverdal',
+        // Zuid-Holland
+        'dordrecht', 'breda', 'tilburg', 'boxtel', 'putte', 'rucphen',
+        'baarle-nassau', 'raamsdonksveer',
+        // Noord-Brabant / Limburg
+        'eindhoven', 'helmond', 'geldrop', 'den bosch', 'obbicht',
+        // Groningen / Friesland / Drenthe
+        'delfzijl', 'winschoten', 'sneek', 'oude pekela',
+        'gasselternijveenschemond', 'eelde', 'jubbega',
+        // Overig
+        'nijmegen', 'axel', 'hengelo gld', 't loo oldebroek'
       ],
 
       // Lead scoring thresholds
