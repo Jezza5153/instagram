@@ -96,7 +96,7 @@ function getDefaultConfig() {
     // ════════════════════════════════════════════════════════════
     hashtag_prospecting: {
       enabled: true,
-      maxCommentsPerDay: 10,  // Lowered from 15
+      maxCommentsPerDay: 25,  // Boosted for customer lead mode
 
       // Only auto-comment on score 9+, rest goes to lead queue
       autoCommentMinScore: 9,
@@ -120,7 +120,22 @@ function getDefaultConfig() {
         'starterswoning', 'nieuwhuis', 'verhuizen', 'bezichtiging', 'taxatie',
         // Cross-niche
         'verhuizing', 'bruiloft', 'verjaardag', 'babyshower', 'bedrijfsfeest',
-        'overbieden', 'funda'
+        'overbieden', 'funda',
+        // ── CUSTOMER INTENT: Catering ──
+        'trouwen2026', 'bruiloft2026', 'trouweninnederland', 'trouwplannen',
+        'feestorganiseren', 'verjaardagsfeest', 'jubileumfeest',
+        'bedrijfsevenement', 'teamuitje', 'eindejaarsfeest',
+        'bbqfeest', 'tuinfeest', 'zomerfeest2026',
+        'babyshowernl', 'genderreveal', 'housewarming',
+        // ── CUSTOMER INTENT: Schilder ──
+        'huisopknappen2026', 'latenschilderen', 'nieuwelook',
+        'gevelschilderen', 'kozijnenverven', 'voorjaarsonderhoud',
+        // ── CUSTOMER INTENT: Aannemer ──
+        'verbouwing2026', 'keukenverbouwen', 'badkamerverbouwen',
+        'dakkapelplaatsen', 'aanbouwmaken', 'uitbouwen',
+        // ── CUSTOMER INTENT: Makelaar ──
+        'huiskopen2026', 'eerstewoning', 'starterswoning2026',
+        'huiszoeken', 'woningzoeken', 'verhuizen2026'
       ],
 
       // Adjusted scoring per analyst: explicit buying +6, contact +5, city +3, project +3, urgency +2, negative -8
@@ -141,7 +156,15 @@ function getDefaultConfig() {
       intentKeywords: [
         'gezocht', 'nodig', 'offerte', 'offertes', 'prijs opvragen', 'kosten', 'wat kost',
         'wie kent', 'iemand ervaring', 'aanrader', 'aanbeveling','betrouwbaar',
-        'op korte termijn', 'spoed'
+        'op korte termijn', 'spoed',
+        // ── CUSTOMER INTENT KEYWORDS ──
+        'wie kent een goede cateraar', 'catering tips', 'catering gezocht',
+        'eten voor feest', 'hapjes bestellen', 'buffet laten bezorgen',
+        'trouwdiner', 'bruiloft eten', 'bbq laten verzorgen',
+        'bedrijfslunch bestellen', 'lunch op kantoor',
+        'schilder gezocht', 'huis laten schilderen',
+        'aannemer gezocht', 'wie kan verbouwen',
+        'makelaar gezocht', 'huis willen kopen'
       ],
 
       // Contact intent (slightly lower value)
@@ -293,7 +316,20 @@ function getDefaultConfig() {
         'woningverkopen': 'makelaar', 'woningkopen': 'makelaar', 'starterswoning': 'makelaar',
         'nieuwhuis': 'makelaar', 'verhuizen': 'makelaar', 'bezichtiging': 'makelaar',
         'taxatie': 'makelaar', 'overbieden': 'makelaar', 'funda': 'makelaar',
-        'verhuizing': 'general'
+        'verhuizing': 'general',
+        // ── CUSTOMER INTENT MAPPINGS ──
+        'trouwen2026': 'catering', 'bruiloft2026': 'catering', 'trouweninnederland': 'catering',
+        'trouwplannen': 'catering', 'feestorganiseren': 'catering', 'verjaardagsfeest': 'catering',
+        'jubileumfeest': 'catering', 'bedrijfsevenement': 'catering', 'teamuitje': 'catering',
+        'eindejaarsfeest': 'catering', 'bbqfeest': 'catering', 'tuinfeest': 'catering',
+        'zomerfeest2026': 'catering', 'babyshowernl': 'catering', 'genderreveal': 'catering',
+        'housewarming': 'catering',
+        'huisopknappen2026': 'schilder', 'latenschilderen': 'schilder', 'nieuwelook': 'schilder',
+        'gevelschilderen': 'schilder', 'kozijnenverven': 'schilder', 'voorjaarsonderhoud': 'schilder',
+        'verbouwing2026': 'aannemer', 'keukenverbouwen': 'aannemer', 'badkamerverbouwen': 'aannemer',
+        'dakkapelplaatsen': 'aannemer', 'aanbouwmaken': 'aannemer', 'uitbouwen': 'aannemer',
+        'huiskopen2026': 'makelaar', 'eerstewoning': 'makelaar', 'starterswoning2026': 'makelaar',
+        'huiszoeken': 'makelaar', 'woningzoeken': 'makelaar', 'verhuizen2026': 'makelaar'
       }
     }
   };
@@ -561,7 +597,7 @@ async function hashtagProspectingFunnel(token, accountId) {
   const autoMinScore = config.autoCommentMinScore || 9;
   const queueMinScore = config.leadQueueMinScore || 5;
 
-  const hashtags = [...config.searchHashtags].sort(() => Math.random() - 0.5).slice(0, 5);
+  const hashtags = [...config.searchHashtags].sort(() => Math.random() - 0.5).slice(0, 10);
 
   for (const hashtag of hashtags) {
     if (todayComments + commentCount >= maxComments) break;

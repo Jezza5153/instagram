@@ -432,11 +432,11 @@ function start() {
   }, { timezone: 'Europe/Amsterdam' });
   log('⏰ 🎯 Engagement retarget: daily at 10:00');
 
-  // Hashtag prospecting: every 2 hours
-  cron.schedule('0 */2 * * *', () => {
+  // Hashtag prospecting: every hour (boosted for customer lead mode)
+  cron.schedule('0 * * * *', () => {
     funnelEngine.hashtagProspectingFunnel(TOKEN, ACCOUNT_ID);
   });
-  log('⏰ 🔍 Hashtag prospecting: every 2 hours');
+  log('⏰ 🔍 Hashtag prospecting: every hour');
 
   // Run initial checks
   trackGrowth();
